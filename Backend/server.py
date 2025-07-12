@@ -120,24 +120,27 @@ def get_my_profile():
         for idx, row in enumerate(rets):
             user_list.append({'username': row['username'],'height':float(row['height']),'weight':float(row['weight']),'age':float(row['age'])})
     return response(0,'ok',user_list)
+
 @app.route('/profile_delete',methods=['POST'] )
 def profile_delete():
-    if str(request.data)=='':
-        return response(1,'index error')
-    param=json.loads(request.data)
-    if 'id' not in param:
-        return response(1,'index error')
-    sql='delete from users where id=:id'
-    execute(sql,{'id':param['id']})
-    return response(0,'Deleted')
+    data = request.get_json()
+    if not data:
+        return response(1, 'Missing or invalid JSON')
+    username = data.get('username')
+    if not username:
+        return response(1, 'Username is required')
+    sql = 'DELETE FROM users WHERE username=:username'
+    execute(sql, {'username': username})
+    return response(0, 'Deleted')
+
 @app.route('/register',methods=['POST'] )
 def profile_add():
     field=[]
     vals={}
-    if str(request.data)=='':
-        return response(1,'index error')
 
-    data=json.loads(request.data)
+    data=request.get_json()
+    if not data:
+        return response(1,'index error')
     if 'username' not in data:
         return response(1,'enter username')
     if 'password' not in data:
@@ -166,44 +169,27 @@ def profile_add():
     return response(0,'profile added')
 @app.route('/profile_edit',methods=['PUT'] )
 def profile_edit():
-    field=[]
-    vals={}
-    if not request.data:
-        return response(1,'index error')
-    param = json.loads(request.data)
-    if 'id' not in param:
-        return response(1,'index error')
-    vals['id']=param['id']
-    if 'username' not in param:
-        return response(1,'username cannot be empty')
+    param = request.get_json()
+    if not param:
+        return response(1, 'index error')
 
-    field.append('username')
-    vals['username']=param['username']
-
-    usql='select * from users where id=:id'
-    rets= query(usql,{'id':param['id']})
-    if len(rets)==0:
-        return response(1,'User not found')
-
-    nsql='select * from users where username=:username'
-    nrets= query(nsql,{'username':param['username']})
-    if len(nrets)>0:
-        return response(1,'duplicate username, please enter new username')
-
-    if 'height' in param:
-        field.append('height')
-        vals['height']=int(param['height'])
-    if 'weight' in param:
-        field.append('weight')
-        vals['weight']=float(param['weight'])
-    if 'age' in param:
-        field.append('age')
-        vals['age']=int(param['age'])
-    sets = []
-    [sets.append("%s=:%s" % (f, f)) for f in field]
-    sql = 'update users set %s where id=:id' % (','.join(sets))
+    username = get_jwt_identity()
+    field = []
+    vals = {}
+    for key in ['height', 'weight', 'age']:
+        if key in param:
+            try:
+                vals[key] = float(param[key]) if key == 'weight' else int(param[key])
+                field.append(key)
+            except (ValueError, TypeError):
+                return response(1, f'{key} must be a valid number')
+    if not field:
+        return response(1, 'No fields to update')
+    vals['username'] = username
+    sets = [f"{f} = :{f}" for f in field]
+    sql = f"UPDATE users SET {', '.join(sets)} WHERE username = :username"
     execute(sql, vals)
-    return response(0,'profile updated')
+    return response(0, 'profile updated')
 
 @app.route('/nutrition_add',methods=['PUT'] )
 def nutrition_update():
