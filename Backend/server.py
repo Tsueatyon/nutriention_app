@@ -257,6 +257,8 @@ def delete_log():
         return response(999, 'authentication required')
     sql = 'select nutrition_log from users where username=:username'
     res = query(sql, {'username':username})
+    if not res:
+        return response(1, 'user not found')
     param = json.loads(request.data)
     target_timestamp = param['timestamp']
     target_food = param['food']

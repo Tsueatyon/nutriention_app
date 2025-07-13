@@ -39,11 +39,6 @@ def profile_edit(token):
     response = requests.put(url, json=param,headers={"Authorization": f"Bearer {token}"})
     check_success(response)
 
-def logout(token):
-    url = f"http://localhost:{port}/logout"
-    response = requests.post(url,headers={"Authorization": f"Bearer {token}"})
-    check_success(response)
-
 def delete_profile(token,param):
     url = f"http://localhost:{port}/profile_delete"
     param ={"username":"testing"}
