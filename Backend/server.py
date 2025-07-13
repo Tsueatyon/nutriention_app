@@ -199,7 +199,10 @@ def nutrition_update():
     for entry in required_entries:
         if entry not in param:
             return response(1,f'Missing entry{entry}')
-    time =  datetime.now().isoformat()
+    if 'timestamp' not in param:
+        time =  datetime.now().isoformat()
+    else:
+        time = param['timestamp']
     quantity = float(param['quantity'])
     nutrient = param['nutrients']
     try:
@@ -235,6 +238,7 @@ def nutrition_update():
     except Exception as e:
         db.session.rollback()
         return response(1,'Failed to insert nutrition data',str(e))
+
 @app.route('/retrieve_log',methods=['GET'] )
 def retrieve_log():
     username = get_jwt_identity()
@@ -242,8 +246,10 @@ def retrieve_log():
         return response(999, 'authentication required')
     sql = 'select nutrition_log from users where username=:username'
     res = query(sql, {'username':username})
-    return res[0]['nutrition_log']
+    return response(0,"log_returned",res[0]['nutrition_log'])
 
+
+# prerequisite: Login and pass timestamp and food name
 @app.route('/delete_log',methods=['POST'] )
 def delete_log():
     username = get_jwt_identity()

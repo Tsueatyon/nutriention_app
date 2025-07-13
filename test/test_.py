@@ -89,3 +89,45 @@ def test_profile_edit():
     assert new_response["data"][0]["height"] == 100
     assert new_response["data"][0]["age"] == 100
     assert new_response["data"][0]["weight"] == 100
+
+def test_nutrition_update():
+    url = f"http://localhost:{port}/nutrition_add"
+    token = login()
+    param = {
+        "food": "Grilled Chicken Breast",
+        "timestamp":"2025-07-12T14:32:45",
+        "quantity": 150.5,
+        "nutrients": {
+        "protein": 31.2,
+        "carbs": 0,
+        "fat": 3.6,
+        "calories": 165,
+        "fiber": 0,
+        "sugar": 0,
+        "sodium": 74
+    }
+}
+    response = requests.put(url, json=param, headers={"Authorization": f"Bearer {token}"})
+    check_success(response)
+
+def test_retrieve_log():
+    token = login()
+    url = f"http://localhost:{port}/retrieve_log"
+    response = requests.get(url, headers={"Authorization": f"Bearer {token}"})
+    check_success(response)
+
+def test_delete_log():
+    token = login()
+    url = f"http://localhost:{port}/delete_log"
+    param = {
+        "timestamp":"2025-07-12T14:32:45",
+        "food": "Grilled Chicken Breast",
+    }
+    response = requests.post(url, json=param, headers={"Authorization": f"Bearer {token}"})
+    check_success(response)
+
+def test_dv_summation():
+    token = login()
+    url = f"http://localhost:{port}/dv_summation"
+    response = requests.get(url, headers={"Authorization": f"Bearer {token}"})
+    check_success(response)
