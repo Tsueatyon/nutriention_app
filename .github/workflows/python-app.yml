@@ -54,7 +54,7 @@ jobs:
           cd Backend
           python server.py config.prd.ini &
           # Wait for server to be ready (adjust path/endpoint as needed)
-          until curl -s http://localhost:8000/healthcheck; do
+          until curl -s http://localhost:9000/healthcheck; do
             echo "Waiting for server..."
             sleep 3
           done
