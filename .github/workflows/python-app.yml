@@ -40,5 +40,9 @@ jobs:
       - name: Run pytest
         run: pytest test/
 
+      - name: Show app container logs on failure
+        if: failure()
+        run: docker-compose logs app
+
       - name: Shut down containers
         run: docker compose down
