@@ -22,6 +22,7 @@ jobs:
 
       - name: Install dependencies
         run: |
+          cd Backend
           pip install -r requirements.txt
 
       - name: Start server
