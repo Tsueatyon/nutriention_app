@@ -10,55 +10,35 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
-    services:
-      postgres:
-        image: postgres:15
-        ports:
-          - 5432:5432
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: 12345678
-          POSTGRES_DB: postgres
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-    env:
-      DATABASE_URL: postgresql://testuser:testpass@localhost:5432/testdb
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+
+      - name: Set up Docker
+        run: docker-compose version
+
+      - name: Build and start containers
+        run: docker-compose up -d --build
+
+      - name: Wait for app to be ready
+        run: |
+          echo "Waiting for app on localhost:9000..."
+          until curl -s http://localhost:9000/healthcheck; do
+            echo "Still waiting for app..."
+            sleep 3
+          done
+          echo "App is up!"
 
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
 
-      - name: Install dependencies
-        run: |
-          cd Backend
-          pip install -r requirements.txt
-
-      - name: Wait for Postgres to be ready
-        run: |
-          until pg_isready -h localhost -p 5432; do
-            echo "Waiting for Postgres..."
-            sleep 3
-          done
-
-      - name: Start server
-        run: |
-          cd Backend
-          python server.py config.prd.ini &
-          # Wait for server to be ready (adjust path/endpoint as needed)
-          until curl -s http://localhost:9000/healthcheck; do
-            echo "Waiting for server..."
-            sleep 3
-          done
+      - name: Install test dependencies
+        run: pip install -r Backend/requirements.txt
 
       - name: Run pytest
-        run: |
-          pytest test/
+        run: pytest test/
+
+      - name: Shut down containers
+        run: docker-compose down

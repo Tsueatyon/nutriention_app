@@ -14,8 +14,6 @@ services:
       - DATABASE_URL=postgresql://postgres:12345678@db:5432/postgres
     volumes:
       - ./Backend:/app
-    command: ["python", "server.py","config.prd.ini"]
-
   frontend:
     build:
       context: ./Frontend
@@ -25,8 +23,6 @@ services:
     volumes:
       - ./Frontend:/app
       - /app/node_modules
-    command: ["npm", "run", "dev"]
-
   db:
     image: postgres:15
     restart: always
