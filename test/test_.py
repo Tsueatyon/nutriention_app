@@ -1,12 +1,10 @@
-import token
-
 import requests
 import configparser
 import uuid
 
 config = configparser.ConfigParser()
 config.read("../Backend/config.prd.ini")
-port = config.get("server", "port")
+port = 9000
 
 
 
