@@ -1,7 +1,5 @@
-
 import os
 from datetime import datetime, date
-
 from flask import Flask, request, make_response, jsonify
 from flask_cors import CORS
 import json,sys,configparser
@@ -17,21 +15,25 @@ config.read(sys.argv[1], encoding='utf-8')
 app = Flask(__name__)
 CORS(app, supports_credentials=True)
 jwt = JWTManager(app)
-db = SQLAlchemy()
 
 # PostgreSQL connection string
 # postgresql+psycopg2://username:password@host:port/database
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql+psycopg2://%s:%s@%s:%d/%s' % (
-    config.get('postgres', 'user'),
-    config.get('postgres', 'password'),
-    config.get('postgres', 'host'),
-    config.getint('postgres', 'port'),
-    config.get('postgres', 'database')
-)
+db_uri = os.getenv("DATABASE_URL")
+if not db_uri:
+    db_uri = 'postgresql+psycopg2://%s:%s@%s:%d/%s' % (
+        config.get('postgres', 'user'),
+        config.get('postgres', 'password'),
+        config.get('postgres', 'host'),
+        config.getint('postgres', 'port'),
+        config.get('postgres', 'database')
+    )
 
+app.config['SQLALCHEMY_DATABASE_URI'] = db_uri
 app.config['SQLALCHEMY_ECHO'] = config.getboolean('postgres', 'debug')
-app.config['JWT_SECRET_KEY'] = "2ba1756a7b793952f60a3e33c56f3beb5a0e53c258bbc8d223d95abf1d0875b4"
+db = SQLAlchemy(app)
 db.init_app(app)
+app.config['JWT_SECRET_KEY'] = "2ba1756a7b793952f60a3e33c56f3beb5a0e53c258bbc8d223d95abf1d0875b4"
+
 
 @app.after_request
 def after_request(resp):

@@ -1,4 +1,3 @@
-# .github/workflows/ci.yml
 name: CI
 
 on:
@@ -10,6 +9,24 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: testpass
+          POSTGRES_DB: testdb
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://testuser:testpass@localhost:5432/testdb
 
     steps:
       - name: Checkout code
@@ -25,13 +42,23 @@ jobs:
           cd Backend
           pip install -r requirements.txt
 
+      - name: Wait for Postgres to be ready
+        run: |
+          until pg_isready -h localhost -p 5432; do
+            echo "Waiting for Postgres..."
+            sleep 3
+          done
+
       - name: Start server
         run: |
           cd Backend
           python server.py config.prd.ini &
-          sleep 5
+          # Wait for server to be ready (adjust path/endpoint as needed)
+          until curl -s http://localhost:8000/healthcheck; do
+            echo "Waiting for server..."
+            sleep 3
+          done
 
       - name: Run pytest
-        run: | 
-          cd test
-          pytest
+        run: |
+          pytest test/
