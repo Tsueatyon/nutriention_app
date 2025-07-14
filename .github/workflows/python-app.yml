@@ -43,7 +43,7 @@ jobs:
               100,
               100,
               100,
-              $$[
+              '[
                 {
                   \"food\": \"Grilled Chicken Breast\",
                   \"timestamp\": \"2025-07-12T14:32:45\",
@@ -58,8 +58,10 @@ jobs:
                     \"sodium\": 74
                   }
                 }
-              ]$$
+              ]'::jsonb
             );
+          "
+
           
           ON CONFLICT DO NOTHING;"
 
