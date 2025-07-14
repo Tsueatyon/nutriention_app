@@ -14,6 +14,7 @@ services:
       - DATABASE_URL=postgresql://postgres:12345678@db:5432/postgres
     volumes:
       - ./Backend:/app
+
   frontend:
     build:
       context: ./Frontend
@@ -23,6 +24,7 @@ services:
     volumes:
       - ./Frontend:/app
       - /app/node_modules
+
   db:
     image: postgres:15
     restart: always
@@ -37,3 +39,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    volumes:
+      - pgdata:/var/lib/postgresql/data  # <-- Add this line to persist DB data
+
+volumes:
+  pgdata:
