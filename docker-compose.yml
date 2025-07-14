@@ -8,32 +8,31 @@ services:
     ports:
       - "9000:9000"
     depends_on:
-      db:
-        condition: service_healthy
-    environment:
-      - DATABASE_URL=postgresql://postgres:12345678@db:5432/postgres
+      - db
     volumes:
-      - ./Backend:/app
+      - ./Backend:/app    # Mount your backend code for live reload
+    command: ["python", "server.py","config.prd.ini"]
+
   frontend:
     build:
       context: ./Frontend
       dockerfile: Dockerfile
     ports:
-      - "3000:3000"
+      - "5173:5173"
     volumes:
       - ./Frontend:/app
-      - /app/node_modules
+      - node_modules:/app/node_modules
+    command: ["npm", "run", "dev"]
+
   db:
     image: postgres:15
     restart: always
     environment:
-      POSTGRES_DB: postgres
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: 12345678
+      POSTGRES_DB: nutrition
+      POSTGRES_USER: klaid
+      POSTGRES_PASSWORD: KLAID99100
     ports:
       - "5432:5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+
+volumes:
+  node_modules:

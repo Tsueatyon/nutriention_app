@@ -1,5 +1,7 @@
+
 import os
 from datetime import datetime, date
+
 from flask import Flask, request, make_response, jsonify
 from flask_cors import CORS
 import json,sys,configparser
@@ -15,25 +17,21 @@ config.read(sys.argv[1], encoding='utf-8')
 app = Flask(__name__)
 CORS(app, supports_credentials=True)
 jwt = JWTManager(app)
+db = SQLAlchemy()
 
 # PostgreSQL connection string
 # postgresql+psycopg2://username:password@host:port/database
-db_uri = os.getenv("DATABASE_URL")
-if not db_uri:
-    db_uri = 'postgresql+psycopg2://%s:%s@%s:%d/%s' % (
-        config.get('postgres', 'user'),
-        config.get('postgres', 'password'),
-        config.get('postgres', 'host'),
-        config.getint('postgres', 'port'),
-        config.get('postgres', 'database')
-    )
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql+psycopg2://%s:%s@%s:%d/%s' % (
+    config.get('postgres', 'user'),
+    config.get('postgres', 'password'),
+    config.get('postgres', 'host'),
+    config.getint('postgres', 'port'),
+    config.get('postgres', 'database')
+)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = db_uri
 app.config['SQLALCHEMY_ECHO'] = config.getboolean('postgres', 'debug')
-db = SQLAlchemy(app)
-db.init_app(app)
 app.config['JWT_SECRET_KEY'] = "2ba1756a7b793952f60a3e33c56f3beb5a0e53c258bbc8d223d95abf1d0875b4"
-
+db.init_app(app)
 
 @app.after_request
 def after_request(resp):
@@ -122,27 +120,24 @@ def get_my_profile():
         for idx, row in enumerate(rets):
             user_list.append({'username': row['username'],'height':float(row['height']),'weight':float(row['weight']),'age':float(row['age'])})
     return response(0,'ok',user_list)
-
 @app.route('/profile_delete',methods=['POST'] )
 def profile_delete():
-    data = request.get_json()
-    if not data:
-        return response(1, 'Missing or invalid JSON')
-    username = data.get('username')
-    if not username:
-        return response(1, 'Username is required')
-    sql = 'DELETE FROM users WHERE username=:username'
-    execute(sql, {'username': username})
-    return response(0, 'Deleted')
-
+    if str(request.data)=='':
+        return response(1,'index error')
+    param=json.loads(request.data)
+    if 'id' not in param:
+        return response(1,'index error')
+    sql='delete from users where id=:id'
+    execute(sql,{'id':param['id']})
+    return response(0,'Deleted')
 @app.route('/register',methods=['POST'] )
 def profile_add():
     field=[]
     vals={}
-
-    data=request.get_json()
-    if not data:
+    if str(request.data)=='':
         return response(1,'index error')
+
+    data=json.loads(request.data)
     if 'username' not in data:
         return response(1,'enter username')
     if 'password' not in data:
@@ -171,27 +166,44 @@ def profile_add():
     return response(0,'profile added')
 @app.route('/profile_edit',methods=['PUT'] )
 def profile_edit():
-    param = request.get_json()
-    if not param:
-        return response(1, 'index error')
+    field=[]
+    vals={}
+    if not request.data:
+        return response(1,'index error')
+    param = json.loads(request.data)
+    if 'id' not in param:
+        return response(1,'index error')
+    vals['id']=param['id']
+    if 'username' not in param:
+        return response(1,'username cannot be empty')
 
-    username = get_jwt_identity()
-    field = []
-    vals = {}
-    for key in ['height', 'weight', 'age']:
-        if key in param:
-            try:
-                vals[key] = float(param[key]) if key == 'weight' else int(param[key])
-                field.append(key)
-            except (ValueError, TypeError):
-                return response(1, f'{key} must be a valid number')
-    if not field:
-        return response(1, 'No fields to update')
-    vals['username'] = username
-    sets = [f"{f} = :{f}" for f in field]
-    sql = f"UPDATE users SET {', '.join(sets)} WHERE username = :username"
+    field.append('username')
+    vals['username']=param['username']
+
+    usql='select * from users where id=:id'
+    rets= query(usql,{'id':param['id']})
+    if len(rets)==0:
+        return response(1,'User not found')
+
+    nsql='select * from users where username=:username'
+    nrets= query(nsql,{'username':param['username']})
+    if len(nrets)>0:
+        return response(1,'duplicate username, please enter new username')
+
+    if 'height' in param:
+        field.append('height')
+        vals['height']=int(param['height'])
+    if 'weight' in param:
+        field.append('weight')
+        vals['weight']=float(param['weight'])
+    if 'age' in param:
+        field.append('age')
+        vals['age']=int(param['age'])
+    sets = []
+    [sets.append("%s=:%s" % (f, f)) for f in field]
+    sql = 'update users set %s where id=:id' % (','.join(sets))
     execute(sql, vals)
-    return response(0, 'profile updated')
+    return response(0,'profile updated')
 
 @app.route('/nutrition_add',methods=['PUT'] )
 def nutrition_update():
@@ -201,10 +213,7 @@ def nutrition_update():
     for entry in required_entries:
         if entry not in param:
             return response(1,f'Missing entry{entry}')
-    if 'timestamp' not in param:
-        time =  datetime.now().isoformat()
-    else:
-        time = param['timestamp']
+    time =  datetime.now().isoformat()
     quantity = float(param['quantity'])
     nutrient = param['nutrients']
     try:
@@ -240,7 +249,6 @@ def nutrition_update():
     except Exception as e:
         db.session.rollback()
         return response(1,'Failed to insert nutrition data',str(e))
-
 @app.route('/retrieve_log',methods=['GET'] )
 def retrieve_log():
     username = get_jwt_identity()
@@ -248,10 +256,8 @@ def retrieve_log():
         return response(999, 'authentication required')
     sql = 'select nutrition_log from users where username=:username'
     res = query(sql, {'username':username})
-    return response(0,"log_returned",res[0]['nutrition_log'])
+    return res[0]['nutrition_log']
 
-
-# prerequisite: Login and pass timestamp and food name
 @app.route('/delete_log',methods=['POST'] )
 def delete_log():
     username = get_jwt_identity()
@@ -259,8 +265,6 @@ def delete_log():
         return response(999, 'authentication required')
     sql = 'select nutrition_log from users where username=:username'
     res = query(sql, {'username':username})
-    if not res:
-        return response(1, 'user not found')
     param = json.loads(request.data)
     target_timestamp = param['timestamp']
     target_food = param['food']
