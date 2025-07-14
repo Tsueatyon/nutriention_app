@@ -6,9 +6,6 @@ config = configparser.ConfigParser()
 config.read("../Backend/config.prd.ini")
 port = 9000
 
-
-
-
 def check_success(response):
     assert response.status_code == 200
     data = response.json()
