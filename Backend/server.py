@@ -134,32 +134,31 @@ def profile_delete():
 def profile_add():
     field=[]
     vals={}
-    if str(request.data)=='':
-        return response(1,'index error')
-
-    data=json.loads(request.data)
-    if 'username' not in data:
+    param = request.get_json()
+    if not param:
+        return response(1, 'empty json')
+    if 'username' not in param:
         return response(1,'enter username')
-    if 'password' not in data:
+    if 'password' not in param:
         return response(1,'enter password')
     field.append('username')
-    vals['username']=data['username']
+    vals['username']=param['username']
     field.append('password')
-    vals['password']=data['password']
-    print("testing")
+    vals['password']=param['password']
+
     usql = 'select * from users where username=:username'
-    rets= query(usql,{'username':data['username']})
+    rets= query(usql,{'username':param['username']})
     if len(rets)>0:
         return response(1,'duplicate username, please enter new username')
-    if 'height' in data:
+    if 'height' in param:
         field.append('height')
-        vals['height']=float(data['height'])
-    if 'weight' in data:
+        vals['height']=float(param['height'])
+    if 'weight' in param:
         field.append('weight')
-        vals['weight']=float(data['weight'])
-    if 'age' in data:
+        vals['weight']=float(param['weight'])
+    if 'age' in param:
         field.append('age')
-        vals['age']=float(data['age'])
+        vals['age']=float(param['age'])
 
     sql='insert into users (%s) values (:%s)' % (', '.join(field),',:'.join(field))
     execute(sql,vals)
@@ -168,9 +167,9 @@ def profile_add():
 def profile_edit():
     field=[]
     vals={}
-    if not request.data:
-        return response(1,'index error')
-    param = json.loads(request.data)
+    param = request.get_json()
+    if not param:
+        return response(1, 'empty json')
     if 'id' not in param:
         return response(1,'index error')
     vals['id']=param['id']
@@ -256,7 +255,7 @@ def retrieve_log():
         return response(999, 'authentication required')
     sql = 'select nutrition_log from users where username=:username'
     res = query(sql, {'username':username})
-    return res[0]['nutrition_log']
+    return response(0,"Data retreived",res[0]['nutrition_log'])
 
 @app.route('/delete_log',methods=['POST'] )
 def delete_log():
