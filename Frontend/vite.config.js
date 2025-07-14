@@ -7,6 +7,6 @@ export default defineConfig({
     proxy: {
       '/login': 'http://localhost:9000',
       '/profile_add': 'http://localhost:9000'
-    } 12
+    }
   }
 });
