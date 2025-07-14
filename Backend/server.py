@@ -146,7 +146,7 @@ def profile_add():
     vals['username']=data['username']
     field.append('password')
     vals['password']=data['password']
-
+    print("testing")
     usql = 'select * from users where username=:username'
     rets= query(usql,{'username':data['username']})
     if len(rets)>0:
