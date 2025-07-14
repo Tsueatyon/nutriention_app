@@ -25,7 +25,7 @@ jobs:
           docker compose exec -T db psql -U postgres -d postgres -c "
           CREATE TABLE IF NOT EXISTS users (
             id SERIAL PRIMARY KEY,
-            username VARCHAR(255),
+            username VARCHAR(255) UNIQUE,
             password VARCHAR(255),
             weight INT,
             height INT,
@@ -59,11 +59,8 @@ jobs:
                   }
                 }
               ]'::jsonb
-            );
-          "
-
-          
-          ON CONFLICT DO NOTHING;"
+            )
+            ON CONFLICT (username) DO NOTHING;"
 
       - name: Wait for app to be ready
         run: |
