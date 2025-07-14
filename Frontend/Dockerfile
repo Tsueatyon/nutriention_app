@@ -11,8 +11,11 @@ RUN npm install
 # Copy app source code
 COPY . .
 
-# Expose React dev server port (default 3000)
-EXPOSE 3000
 
-CMD ["npm", "run", "dev"]
+# Expose React dev server port (default 3000)
+EXPOSE 5173
+
+RUN npm run build
+
+CMD ["npm", "run", "test"]
 
